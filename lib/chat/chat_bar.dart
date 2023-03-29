@@ -24,14 +24,14 @@ class _ChatBarState extends State<ChatBar> {
   late final FirebaseAuth _firebaseAuth;
   late final FirebaseFirestore _firestore;
   late final FirebaseStorage _storage;
-  late ColorScreenTheme Darkmode;
+  late ColorScreenTheme _darkMode;
   @override
   void initState() {
     _controller = TextEditingController();
     _firebaseAuth = FirebaseAuth.instance;
     _firestore = FirebaseFirestore.instance;
     _storage = FirebaseStorage.instance;
-    Darkmode = Provider.of<ColorScreenTheme>(context, listen: false);
+    _darkMode = Provider.of<ColorScreenTheme>(context, listen: false);
     super.initState();
   }
 
@@ -93,7 +93,7 @@ class _ChatBarState extends State<ChatBar> {
 
   @override
   Widget build(BuildContext context) {
-    bool isDarkMode = Darkmode.isDark;
+    bool isDarkMode = _darkMode.isDark;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 15),
       child: Row(
