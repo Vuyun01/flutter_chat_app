@@ -1,5 +1,5 @@
 import 'package:chat_app/constant.dart';
-import 'package:chat_app/provider/color_screen_theme_provider.dart';
+import 'package:chat_app/provider/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -11,7 +11,7 @@ class ShowImageMessage extends StatelessWidget {
   final DateTime time;
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Provider.of<ColorScreenTheme>(context).isDark;
+    final isDarkMode = Provider.of<SettingsProvider>(context).isDark;
     return Scaffold(
       backgroundColor: isDarkMode ? darkTheme : null,
       appBar: AppBar(

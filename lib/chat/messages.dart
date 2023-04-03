@@ -1,40 +1,44 @@
 import 'package:chat_app/chat/message_bubble.dart';
+import 'package:chat_app/constant.dart';
+import 'package:chat_app/helper/firestore_helper.dart';
 import 'package:chat_app/models/message.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart' as au;
+import 'package:chat_app/provider/auth_provider.dart';
+import 'package:chat_app/provider/chat_provider.dart';
+import 'package:chat_app/provider/settings_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Messages extends StatefulWidget {
-  const Messages({super.key});
-
+  const Messages({super.key, required this.groupId, required this.sentTo});
+  final String groupId;
+  final String sentTo;
   @override
   State<Messages> createState() => _MessagesState();
 }
 
 class _MessagesState extends State<Messages> {
-  au.User? _currentUser;
-  late FirebaseFirestore _firestore;
+  late AuthProvider authProvider;
+  late ChatProvider chatProvider;
   @override
   void initState() {
-    _firestore = FirebaseFirestore.instance;
-    _currentUser = au.FirebaseAuth.instance.currentUser;
+    authProvider = Provider.of<AuthProvider>(context, listen: false);
+    chatProvider = Provider.of<ChatProvider>(context, listen: false);
     super.initState();
   }
 
   Future<void> _syncUserImagetoMessages() async {
     try {
-      final userInfo =
-          await _firestore.collection('users').doc(_currentUser?.uid).get();
-      await _firestore
-          .collection('chat')
-          .where('userId', isEqualTo: _currentUser?.uid)
-          .get()
+      final userId = authProvider.getCurrentUserID;
+      final userInfo = await authProvider.getUserInfo(userId);
+      await chatProvider
+          .getChatDataBasedOnUserId(FireStoreHelper.collectionChatsPath,
+              FireStoreHelper.subCollectionChatsPath, widget.groupId, userId)
           .then((value) {
         value.docs.forEach((item) async {
           try {
-            if (userInfo['imageURL'] != null) {
-              await item.reference.set({'userImageURL': userInfo['imageURL']},
-                  SetOptions(merge: true));
+            if (userInfo?.imageURL != null) {
+              await item.reference
+                  .update({FireStoreHelper.imageURL: userInfo!.imageURL});
             }
             print('Update user messages');
           } catch (e) {
@@ -50,14 +54,15 @@ class _MessagesState extends State<Messages> {
 
   @override
   Widget build(BuildContext context) {
+    bool isDarkMode =
+        Provider.of<SettingsProvider>(context, listen: false).isDark;
     return FutureBuilder(
       future: _syncUserImagetoMessages(),
-      builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) =>
-          StreamBuilder(
-        stream: FirebaseFirestore.instance
-            .collection('chat')
-            .orderBy('createdAt', descending: true)
-            .snapshots(),
+      builder: (context, snapshot) => StreamBuilder(
+        stream: chatProvider.getChatStreamData(
+            FireStoreHelper.collectionChatsPath,
+            FireStoreHelper.subCollectionChatsPath,
+            widget.groupId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -70,17 +75,32 @@ class _MessagesState extends State<Messages> {
             );
           }
           final docs = snapshot.data!.docs;
-          return ListView.builder(
-              reverse: true,
-              itemCount: docs.length,
-              itemBuilder: ((context, index) {
-                return MessageBubble(
-                  key: ValueKey(docs[index][
-                      'userId']), //add key to make sure that the message is unique
-                  message: Message.fromDocToMessage(docs[index]),
-                  isCurrentUser: _currentUser!.uid == docs[index]['userId'],
+          return docs.isNotEmpty
+              ? ListView.builder(
+                  reverse: true,
+                  itemCount: docs.length,
+                  itemBuilder: ((context, index) {
+                    return MessageBubble(
+                      key: ValueKey(docs[index][FireStoreHelper
+                          .idFrom]), //add key to make sure that the message is unique
+                      message: Message.fromDocToMessage(docs[index]),
+                      isCurrentUser: authProvider.getCurrentUserID ==
+                          docs[index][FireStoreHelper.idFrom],
+                    );
+                  }))
+              : Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'Send a message to start a conversation',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headline6!
+                          .copyWith(color: isDarkMode ? lightTheme : null),
+                    ),
+                  ),
                 );
-              }));
         },
       ),
     );

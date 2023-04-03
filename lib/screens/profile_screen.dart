@@ -1,14 +1,13 @@
 import 'package:chat_app/constant.dart';
+import 'package:chat_app/provider/auth_provider.dart';
 import 'package:chat_app/screens/personal_info_screen.dart';
 import 'package:chat_app/screens/setting_screen.dart';
 import 'package:chat_app/widgets/custom_icon_button.dart';
 import 'package:chat_app/widgets/profile_picture.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-import '../provider/color_screen_theme_provider.dart';
+import '../provider/settings_provider.dart';
 
 class ProfileScreen extends StatelessWidget {
   static const String routeName = '/profile';
@@ -17,21 +16,22 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    bool isDarkMode = Provider.of<ColorScreenTheme>(context).isDark;
+    bool isDarkMode = Provider.of<SettingsProvider>(context).isDark;
+    final authProvider = Provider.of<AuthProvider>(context);
     return Scaffold(
         backgroundColor: isDarkMode ? darkTheme : null,
-        appBar: AppBar(
-          backgroundColor:
-              isDarkMode ? Theme.of(context).colorScheme.tertiary : null,
-          title: const Text('My Profile'),
-          centerTitle: true,
-        ),
+        // appBar: AppBar(
+        //   backgroundColor:
+        //       isDarkMode ? Theme.of(context).colorScheme.tertiary : null,
+        //   title: const Text('My Profile'),
+        //   centerTitle: true,
+        // ),
         body: Column(
           children: [
             SizedBox(
               height: size.height * 0.05,
             ),
-            const ProfilePicture(),
+            ProfilePicture(),
             SizedBox(
               height: size.height * 0.05,
             ),
@@ -62,14 +62,12 @@ class ProfileScreen extends StatelessWidget {
                 text: 'Log Out',
                 icon: Icons.logout,
                 onPress: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                    content: const Text('Sign out the account successfully!'),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                  ));
-                  final prefs = await SharedPreferences.getInstance();
-                  prefs.clear();
-                  await FirebaseAuth.instance.signOut();
-                  Navigator.of(context).pop();
+                  authProvider.signOut().then((_) =>
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content:
+                            const Text('Sign out the account successfully!'),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                      )));
                 }),
             const Spacer(),
             Text(

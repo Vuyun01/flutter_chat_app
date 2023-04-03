@@ -24,7 +24,7 @@ class _AuthFormState extends State<AuthForm> {
   // var _lastname = '';
   // var _email = '';
   // var _password = '';
-  User _user = User(email: '', firstName: '', lastName: '', password: '');
+  User _user = User(email: '', firstName: '', lastName: '', password: '', userId: '');
 
   void _setSignupField() {
     setState(() {

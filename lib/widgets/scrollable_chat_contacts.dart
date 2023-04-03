@@ -1,46 +1,51 @@
-
+import 'package:chat_app/constant.dart';
+import 'package:chat_app/models/user.dart';
+import 'package:chat_app/provider/settings_provider.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class ScrollableChatContacts extends StatelessWidget {
   const ScrollableChatContacts({
     Key? key,
+    required this.users,
   }) : super(key: key);
-
+  final List<User> users;
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    bool isDarkMode =
+        Provider.of<SettingsProvider>(context, listen: false).isDark;
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 15, horizontal: 10),
       height: size.height * 0.12,
       child: ListView.builder(
           scrollDirection: Axis.horizontal,
-          itemCount: 6,
+          itemCount: users.length,
           itemBuilder: ((context, index) => Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: FittedBox(
-                  child: Column(
-                    children: [
-                      const CircleAvatar(
-                        minRadius: 50,
-                        backgroundImage: NetworkImage(
-                            'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzfsTdRjF6giyFsO-d-Jw9beVB4cruN84U8n04eS3vZBHlgh2EFWe5KiTox-qt89I5-Io&usqp=CAU'),
-                      ),
-                      const SizedBox(
-                        height: 5,
-                      ),
-                      SizedBox(
-                          width: 60,
-                          child: Text('User nameasd asd as asda sdas',
-                              // softWrap: true,
+                padding: const EdgeInsets.symmetric(horizontal: 5),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      minRadius: 30,
+                      backgroundImage: NetworkImage(
+                          users[index].imageURL ?? placeholderImage),
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    Expanded(
+                      child: SizedBox(
+                          width: 50,
+                          child: Text(
+                              '${users[index].firstName} ${users[index].lastName}',
                               overflow: TextOverflow.ellipsis,
                               maxLines: 2,
                               textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyText1
-                                  ?.copyWith(fontSize: 18)))
-                    ],
-                  ),
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDarkMode ? lightTheme : null))),
+                    )
+                  ],
                 ),
               ))),
     );

@@ -1,9 +1,11 @@
 import 'dart:io';
-import 'dart:ui';
 
 import 'package:chat_app/constant.dart';
+import 'package:chat_app/helper/firestore_helper.dart';
 import 'package:chat_app/models/message.dart';
-import 'package:chat_app/provider/color_screen_theme_provider.dart';
+import 'package:chat_app/provider/chat_provider.dart';
+import 'package:chat_app/provider/profile_provider.dart';
+import 'package:chat_app/provider/settings_provider.dart';
 import 'package:chat_app/widgets/custom_theme.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,26 +14,30 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-class ChatBar extends StatefulWidget {
-  const ChatBar({super.key});
+import '../provider/auth_provider.dart';
 
+class ChatBar extends StatefulWidget {
+  const ChatBar({super.key, required this.groupId, required this.sentTo});
+
+  final String groupId;
+  final String sentTo;
   @override
   State<ChatBar> createState() => _ChatBarState();
 }
 
 class _ChatBarState extends State<ChatBar> {
   late final _controller;
-  late final FirebaseAuth _firebaseAuth;
-  late final FirebaseFirestore _firestore;
-  late final FirebaseStorage _storage;
-  late ColorScreenTheme _darkMode;
+  late ChatProvider chatProvider;
+  late AuthProvider authProvider;
+  late ProfileProvider profileProvider;
+  late final FirebaseStorage storage;
   @override
   void initState() {
     _controller = TextEditingController();
-    _firebaseAuth = FirebaseAuth.instance;
-    _firestore = FirebaseFirestore.instance;
-    _storage = FirebaseStorage.instance;
-    _darkMode = Provider.of<ColorScreenTheme>(context, listen: false);
+    chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    authProvider = Provider.of<AuthProvider>(context, listen: false);
+    profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    storage = FirebaseStorage.instance;
     super.initState();
   }
 
@@ -40,15 +46,16 @@ class _ChatBarState extends State<ChatBar> {
     try {
       FocusScope.of(context).unfocus();
       _controller.clear();
-      final user = _firebaseAuth.currentUser;
-      final userInfo =
-          await _firestore.collection('users').doc(user?.uid).get();
-      final storedMessage = Message(
-          userId: user!.uid,
+      final userId = authProvider.getCurrentUserID;
+      final userInfo = await authProvider.getUserInfo(userId);
+      final newMessage = Message(
+          idFrom: userId,
+          idTo: widget.sentTo,
           createdAt: DateTime.now(),
-          text: message,
-          userImageURL: userInfo['imageURL'] ?? placeholderImage);
-      await _firestore.collection('chat').add(storedMessage.toMap());
+          content: message,
+          imageURL: userInfo?.imageURL ?? placeholderImage);
+      await chatProvider.sendMessage(FireStoreHelper.collectionChatsPath,
+          FireStoreHelper.subCollectionChatsPath, widget.groupId, newMessage);
       setState(() {
         message = '';
       });
@@ -65,35 +72,38 @@ class _ChatBarState extends State<ChatBar> {
     try {
       final timestamp = Timestamp.now().seconds;
       final newImage = File(takenImage.path);
-      final user = _firebaseAuth.currentUser;
-      final ref = _storage
+      final userId = authProvider.getCurrentUserID;
+      final ref = storage
           .ref()
-          .child('user_image_messages')
-          .child(user!.uid)
-          .child('${user.uid}-$timestamp.jpg');
+          .child(FireStoreHelper.user_image_messages)
+          .child(userId)
+          .child('$userId-$timestamp.jpg');
 
-      await ref.putFile(newImage).then((_) async {
-        final getImageURL = await ref.getDownloadURL();
-        final userInfo =
-            await _firestore.collection('users').doc(user.uid).get();
+      await profileProvider.uploadImageToStorage(ref, newImage).then((_) async {
+        final getImage = await ref.getDownloadURL();
+        final userInfo = await authProvider.getUserInfo(userId);
         final newMessage = Message(
-            userId: user.uid,
+            idFrom: userId,
+            idTo: widget.sentTo,
             createdAt: DateTime.now(),
-            text: getImageURL,
-            userImageURL: userInfo['imageURL'] ?? placeholderImage,
-            type: 'image');
-
-        await _firestore.collection('chat').add(newMessage.toMap());
+            content: getImage,
+            type: 'image',
+            imageURL: userInfo?.imageURL ?? placeholderImage);
+        await chatProvider.sendMessage(FireStoreHelper.collectionChatsPath,
+            FireStoreHelper.subCollectionChatsPath, widget.groupId, newMessage);
       });
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(e.toString()),
+        backgroundColor: Colors.red,
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isDarkMode = _darkMode.isDark;
+    bool isDarkMode =
+        Provider.of<SettingsProvider>(context, listen: false).isDark;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 5, 10, 15),
       child: Row(

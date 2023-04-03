@@ -1,40 +1,41 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import 'dart:convert';
-
+import 'package:chat_app/constant.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import 'package:chat_app/constant.dart';
-
 class Message {
-  String userId;
+  String idFrom;
+  String idTo;
   DateTime createdAt;
-  String text;
-  String userImageURL;
+  String content;
+  String? imageURL;
   String type;
   Message({
-    required this.userId,
+    required this.idFrom,
+    required this.idTo,
     required this.createdAt,
-    required this.text,
-    required this.userImageURL,
+    required this.content,
+    this.imageURL,
     this.type = 'text',
   });
 
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
-      'userId': userId,
-      'createdAt': createdAt,
-      'text': text,
-      'userImageURL': userImageURL,
-      'type': type
+      'idFrom': idFrom,
+      'idTo': idTo,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'content': content,
+      'imageURL': imageURL ?? placeholderImage,
+      'type': type,
     };
   }
 
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
-      userId: map['userId'] as String,
+      idFrom: map['idFrom'] as String,
+      idTo: map['idTo'] as String,
       createdAt: (map['createdAt'] as Timestamp).toDate(),
-      text: map['text'] as String,
-      userImageURL: map['userImageURL'] as String,
+      content: map['content'] as String,
+      imageURL: map['imageURL'] ?? placeholderImage,
       type: map['type'] as String,
     );
   }
@@ -42,19 +43,12 @@ class Message {
   factory Message.fromDocToMessage(
       QueryDocumentSnapshot<Map<String, dynamic>> map) {
     return Message(
-      userId: map['userId'] as String,
-      createdAt: (map['createdAt']
-              as Timestamp) //use this way to convert Timestamp to Datetime object
-          .toDate(), //by default, Firestore will convert Datetime object and store as TimeStamp
-      text: map['text'] as String,
-      userImageURL: map['userImageURL'] as String,
+      idFrom: map['idFrom'] as String,
+      idTo: map['idTo'] as String,
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      content: map['content'] as String,
+      imageURL: map['imageURL'] ?? placeholderImage,
       type: map['type'] as String,
     );
   }
-
-  String toJson() => json.encode(toMap());
-
-  // factory Message.fromJson(String source) =>
-  //     Message.fromMap(json.decode(source) as Map<String, dynamic>);
-
 }

@@ -29,14 +29,14 @@ class _MessageBubbleState extends State<MessageBubble> {
             Padding(
               padding: const EdgeInsets.only(right: 10),
               child: CircleAvatar(
-                backgroundImage: NetworkImage(widget.message.userImageURL),
+                backgroundImage: NetworkImage(widget.message.imageURL!),
               ),
             ),
           widget.message.type == 'image'
               ? GestureDetector(
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => ShowImageMessage(
-                            imageURL: widget.message.text,
+                            imageURL: widget.message.content,
                             time: widget.message.createdAt,
                           ))),
                   child: SizedBox(
@@ -45,7 +45,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
                       child: Image.network(
-                        widget.message.text,
+                        widget.message.content,
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -71,7 +71,7 @@ class _MessageBubbleState extends State<MessageBubble> {
                                 : Colors.grey,
                             borderRadius: BorderRadius.circular(15)),
                         child: Text(
-                          widget.message.text,
+                          widget.message.content,
                           style: Theme.of(context)
                               .textTheme
                               .bodyText1!
@@ -102,7 +102,7 @@ class _MessageBubbleState extends State<MessageBubble> {
             Padding(
               padding: const EdgeInsets.only(left: 10),
               child: CircleAvatar(
-                backgroundImage: NetworkImage(widget.message.userImageURL),
+                backgroundImage: NetworkImage(widget.message.imageURL!),
               ),
             ),
         ],

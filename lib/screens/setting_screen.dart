@@ -1,5 +1,5 @@
 import 'package:chat_app/constant.dart';
-import 'package:chat_app/provider/color_screen_theme_provider.dart';
+import 'package:chat_app/provider/settings_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,10 +12,10 @@ class SettingScreen extends StatefulWidget {
 }
 
 class _SettingScreenState extends State<SettingScreen> {
-  late ColorScreenTheme Darkmode;
+  late SettingsProvider Darkmode;
   @override
   void initState() {
-    Darkmode = Provider.of<ColorScreenTheme>(context, listen: false);
+    Darkmode = Provider.of<SettingsProvider>(context, listen: false);
     super.initState();
   }
 
@@ -23,16 +23,16 @@ class _SettingScreenState extends State<SettingScreen> {
   Widget build(BuildContext context) {
     bool isDarkMode = Darkmode.isDark;
     return Scaffold(
-      backgroundColor: isDarkMode ? darkTheme: lightTheme,
+      backgroundColor: isDarkMode ? darkTheme : lightTheme,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: isDarkMode ? Theme.of(context).colorScheme.tertiary : null,
+        backgroundColor:
+            isDarkMode ? Theme.of(context).colorScheme.tertiary : null,
         title: const Text('Settings'),
       ),
       body: Column(
         children: [
           SwitchListTile.adaptive(
-            
               activeColor: Theme.of(context).colorScheme.primary,
               title: Text(
                 'Dark mode',

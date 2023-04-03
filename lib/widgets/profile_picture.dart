@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:chat_app/constant.dart';
+import 'package:chat_app/helper/firestore_helper.dart';
+import 'package:chat_app/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fbu;
 import 'package:firebase_storage/firebase_storage.dart';
@@ -8,7 +10,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
-import '../provider/color_screen_theme_provider.dart';
+import '../provider/auth_provider.dart';
+import '../provider/profile_provider.dart';
+import '../provider/settings_provider.dart';
 
 class ProfilePicture extends StatefulWidget {
   const ProfilePicture({
@@ -19,41 +23,51 @@ class ProfilePicture extends StatefulWidget {
   State<ProfilePicture> createState() => _ProfilePictureState();
 }
 
-class _ProfilePictureState extends State<ProfilePicture>
-    with SingleTickerProviderStateMixin {
-  fbu.User? _user;
-  late fbu.FirebaseAuth _fireAuth;
-  late FirebaseFirestore _firestore;
-  late FirebaseStorage _firebaseStorage;
-  bool isDark = false;
-
+class _ProfilePictureState extends State<ProfilePicture> {
+  late FirebaseStorage firebaseStorage;
+  late ProfileProvider profileProvider;
+  late AuthProvider authProvider;
   @override
   void initState() {
-    _fireAuth = fbu.FirebaseAuth.instance;
-    _firebaseStorage = FirebaseStorage.instance;
-    _firestore = FirebaseFirestore.instance;
-    _user = _fireAuth.currentUser;
-    isDark = Provider.of<ColorScreenTheme>(context, listen: false).isDark;
+    firebaseStorage = FirebaseStorage.instance;
+    profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    authProvider = Provider.of<AuthProvider>(context, listen: false);
     super.initState();
   }
 
   Future<void> _getImage(ImageSource source) async {
     try {
-      var _image = await ImagePicker()
+      final image = await ImagePicker()
           .pickImage(source: source, maxHeight: 150, imageQuality: 60);
-      if (_image == null) {
+      if (image == null) {
         return;
       }
-      var timeStamp = Timestamp.now().seconds; //get timestamp as seconds
-      var _ref = _firebaseStorage
+      final timeStamp = Timestamp.now().seconds; //get timestamp as seconds
+      final userId = authProvider.getCurrentUserID;
+      final ref = firebaseStorage
           .ref()
-          .child('user_images')
-          .child(_user!.uid)
+          .child(FireStoreHelper.user_images)
+          .child(userId)
           .child(
-              '${_user!.uid}-$timeStamp.jpg'); //create a reference to Firebase Storage
-      _ref
-          .putFile(File(_image.path))
-          .then((_) => _uploadImage(_ref)); //upload the file
+              '$userId-$timeStamp.jpg'); //create a reference to Firebase Storage
+      //upload image to storage -> firestore
+      profileProvider
+          .uploadImageToStorage(ref, File(image.path))
+          .then((_) async {
+        await profileProvider
+            .updateProfileImage(
+                ref, FireStoreHelper.collectionUsersPath, userId)
+            .then((_) async {
+          final userData = await profileProvider.getUserInfo();
+          final newImage = await ref.getDownloadURL();
+          userData.imageURL = newImage;
+          profileProvider.updateUserInfo(
+              userData, FireStoreHelper.collectionUsersPath, userId);
+        }).then((_) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: const Text('Upload image profile successfully!'),
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                )));
+      });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(e.toString()),
@@ -62,23 +76,14 @@ class _ProfilePictureState extends State<ProfilePicture>
     }
   }
 
-  Future<void> _uploadImage(Reference ref) async {
-    final getImageURL = await ref.getDownloadURL();
-    await _firestore //update user's image on Cloud Firestore
-        .collection('users')
-        .doc(_user?.uid)
-        .set({'imageURL': getImageURL}, SetOptions(merge: true));
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: const Text('Upload image profile successfully!'),
-      backgroundColor: Theme.of(context).colorScheme.primary,
-    ));
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    bool isDarkMode =
+        Provider.of<SettingsProvider>(context, listen: false).isDark;
     return StreamBuilder(
-        stream: _firestore.collection('users').doc(_user!.uid).snapshots(),
+        stream: profileProvider.getUserStreamData(
+            FireStoreHelper.collectionUsersPath, authProvider.getCurrentUserID),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Container(
@@ -100,9 +105,7 @@ class _ProfilePictureState extends State<ProfilePicture>
                     backgroundColor: Colors.grey.shade300,
                     backgroundImage: imageSnapshot != null
                         ? NetworkImage(imageSnapshot)
-                        : const NetworkImage(
-                                'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzfsTdRjF6giyFsO-d-Jw9beVB4cruN84U8n04eS3vZBHlgh2EFWe5KiTox-qt89I5-Io&usqp=CAU')
-                            as ImageProvider,
+                        : const NetworkImage(placeholderImage) as ImageProvider,
                   ),
                   Positioned(
                       right: -10,
@@ -117,13 +120,15 @@ class _ProfilePictureState extends State<ProfilePicture>
                               padding: const EdgeInsets.all(7),
                               decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 3),
-                                  color: isDark ? lightTheme : Theme.of(context)
-                                      .colorScheme
-                                      .primary),
+                                  border: Border.all(
+                                      color:
+                                          isDarkMode ? darkTheme : Colors.white,
+                                      width: 3),
+                                  color: isDarkMode
+                                      ? lightTheme
+                                      : Theme.of(context).colorScheme.primary),
                               child: Icon(Icons.camera_alt_rounded,
-                                  color: isDark ? darkTheme : Colors.white),
+                                  color: isDarkMode ? darkTheme : Colors.white),
                             ),
                             onSelected: (value) {
                               if (value == ImageSource.camera) {
