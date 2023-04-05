@@ -26,39 +26,44 @@ class _MessagesState extends State<Messages> {
     super.initState();
   }
 
-  Future<void> _syncUserImagetoMessages() async {
-    try {
-      final userId = authProvider.getCurrentUserID;
-      final userInfo = await authProvider.getUserInfo(userId);
-      await chatProvider
-          .getChatDataBasedOnUserId(FireStoreHelper.collectionChatsPath,
-              FireStoreHelper.subCollectionChatsPath, widget.groupId, userId)
-          .then((value) {
-        value.docs.forEach((item) async {
-          try {
-            if (userInfo?.imageURL != null) {
-              await item.reference
-                  .update({FireStoreHelper.imageURL: userInfo!.imageURL});
-            }
-            print('Update user messages');
-          } catch (e) {
-            print(e.toString());
-            return;
-          }
-        });
-      });
-    } catch (e) {
-      print(e.toString());
-    }
-  }
+  // Future<void> _syncUserImagetoMessages() async {
+  //   try {
+  //     final userId = authProvider.getCurrentUserID;
+  //     final userInfo = await authProvider.getUserInfo(userId);
+  //     await chatProvider
+  //         .getChatDataBasedOnUserId(FireStoreHelper.collectionChatsPath,
+  //             FireStoreHelper.subCollectionChatsPath, widget.groupId, userId)
+  //         .then((value) {
+  //       value.docs.forEach((item) async {
+  //         try {
+  //           if (userInfo?.imageURL != null) {
+  //             await item.reference
+  //                 .update({FireStoreHelper.imageURL: userInfo!.imageURL});
+  //           }
+  //           print('Update user messages');
+  //         } catch (e) {
+  //           print(e.toString());
+  //           return;
+  //         }
+  //       });
+  //     });
+  //   } catch (e) {
+  //     print(e.toString());
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
     bool isDarkMode =
         Provider.of<SettingsProvider>(context, listen: false).isDark;
     return FutureBuilder(
-      future: _syncUserImagetoMessages(),
-      builder: (context, snapshot) => StreamBuilder(
+      future: chatProvider.syncUserImagetoMessages(
+          FireStoreHelper.collectionChatsPath,
+          FireStoreHelper.subCollectionChatsPath,
+          widget.groupId,
+          authProvider.getCurrentUserID),
+      builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) =>
+          StreamBuilder(
         stream: chatProvider.getChatStreamData(
             FireStoreHelper.collectionChatsPath,
             FireStoreHelper.subCollectionChatsPath,

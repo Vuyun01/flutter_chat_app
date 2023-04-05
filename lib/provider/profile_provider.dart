@@ -51,4 +51,5 @@ class ProfileProvider {
           .update(userInfo.toMap());
     });
   }
+
 }

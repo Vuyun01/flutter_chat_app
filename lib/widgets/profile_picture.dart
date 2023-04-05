@@ -54,20 +54,15 @@ class _ProfilePictureState extends State<ProfilePicture> {
       profileProvider
           .uploadImageToStorage(ref, File(image.path))
           .then((_) async {
-        await profileProvider
-            .updateProfileImage(
-                ref, FireStoreHelper.collectionUsersPath, userId)
-            .then((_) async {
-          final userData = await profileProvider.getUserInfo();
-          final newImage = await ref.getDownloadURL();
-          userData.imageURL = newImage;
-          profileProvider.updateUserInfo(
-              userData, FireStoreHelper.collectionUsersPath, userId);
-        }).then((_) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: const Text('Upload image profile successfully!'),
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                )));
-      });
+        final userData = await profileProvider.getUserInfo();
+        final newImage = await ref.getDownloadURL();
+        userData.imageURL = newImage;
+        profileProvider.updateUserInfo(
+            userData, FireStoreHelper.collectionUsersPath, userId);
+      }).then((_) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: const Text('Upload image profile successfully!'),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+              )));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(e.toString()),

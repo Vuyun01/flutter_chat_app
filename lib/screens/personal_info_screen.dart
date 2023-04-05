@@ -36,12 +36,11 @@ class _PersonalInfomationScreenState extends State<PersonalInfomationScreen> {
     if (!isValidated!) return;
     _formKey.currentState?.save();
     try {
-      final newUserInfo = await profileProvider.getUserInfo();
-      newUserInfo.firstName = _firstName;
-      newUserInfo.lastName = _lastName;
+      user.firstName = _firstName;
+      user.lastName = _lastName;
       profileProvider
           .updateUserInfo(
-              newUserInfo, FireStoreHelper.collectionUsersPath, user.userId)
+              user, FireStoreHelper.collectionUsersPath, user.userId)
           .then((_) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: const Text('Update profile successfully!'),
