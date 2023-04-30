@@ -1,4 +1,4 @@
-# Flutter Weather App
+# Flutter Chat App
 
 ## Getting Started
 
