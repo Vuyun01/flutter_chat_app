@@ -22,7 +22,7 @@
 #### 2:
 <p align="center" width="100%">
     <img src="demo/Screenshot_20230430-202008.png" width="32%"/>
-    <img src="demo/Screenshot_20230430-202013.png width="32%"/>
+    <img src="demo/Screenshot_20230430-202013.png" width="32%"/>
     <img src="demo/Screenshot_20230430-202020.png" width="32%"/>
 </p>
 
